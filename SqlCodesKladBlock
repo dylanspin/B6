@@ -1,0 +1,93 @@
+
+CREATE PROCEDURE newSelect()
+SELECT bestemming.Plaats, bestemming.Land, bestemming.Werelddeel FROM klant
+INNER JOIN bestemming ON reis.Bestemmingcode = bestemming.Bestemmingcode
+
+
+CREATE PROCEDURE Land()
+SELECT bestemming.Land, bestemming.Werelddeel FROM bestemming  ORDER BY `Land` DESC
+LIMIT    N;
+INNER JOIN bestemming bestemming.Bestemmingcode
+
+CREATE PROCEDURE MostVisited()
+
+SELECT bestemming.Land, bestemming.Werelddeel FROM bestemming group by `Land` order by `Land` desc
+
+SELECT Bestemmingcode FROM reis group by `Bestemmingcode` order by `Bestemmingcode` desc
+
+select Value,COUNT(Value) AS ValueFrequency
+
+SELECT Bestemmingcode,Reisnr,Prijs_per_persoon FROM reis group by Bestemmingcode order by COUNT(Bestemmingcode) DESC
+INNER JOIN bestemming ON Bestemmingcode = bestemming.Bestemmingcode
+
+SELECT Bestemmingcode,Reisnr,Prijs_per_persoon FROM reis
+INNER JOIN bestemming ON reis.Bestemmingcode = bestemming.Bestemmingcode
+
+
+SELECT Naam, Woonplaats, bestemming.Plaats, bestemming.Land,
+bestemming.Werelddeel FROM klant
+INNER JOIN boeking ON klant.Klantnr = boeking.Klantnr
+INNER JOIN reis ON boeking.Reisnr = reis.Reisnr
+INNER JOIN bestemming ON reis.Bestemmingcode = bestemming.Bestemmingcode
+
+
+SELECT Reisnr FROM boeking group by Reisnr order by COUNT(Reisnr) DESC
+
+SELECT bestemming.Plaats, bestemming.Land FROM boeking group by bestemming.Land order by COUNT(bestemming.Land) DESC
+INNER JOIN reis ON boeking.Reisnr = reis.Reisnr
+INNER JOIN bestemming ON reis.Bestemmingcode = bestemming.Bestemmingcode
+
+
+SELECT bestemming.Plaats, bestemming.Land, status FROM boeking
+INNER JOIN reis ON boeking.Reisnr = reis.Reisnr
+INNER JOIN bestemming ON reis.Bestemmingcode = bestemming.Bestemmingcode
+
+
+CREATE PROCEDURE betaalde()
+SELECT bestemming.Plaats, bestemming.Land, status FROM boeking
+INNER JOIN reis ON boeking.Reisnr = reis.Reisnr
+INNER JOIN bestemming ON reis.Bestemmingcode = bestemming.Bestemmingcode ORDER BY `boeking`.`status` ASC
+
+
+DELIMITER $$
+CREATE TRIGGER `telVolwassenenDelete`
+AFTER DELETE ON `boeking`
+FOR EACH ROW
+BEGIN
+ SET @aantalVolwassenen = (SELECT SUM(Aantal_volwassenen) FROM boeking);
+ SET @aantalRijen = (SELECT COUNT(IFNULL(Aantal_volwassenen, 1)) FROM klant_statistieken);
+ SET @datum = (SELECT CURDATE());
+IF @aantalRijen = 0 THEN
+ INSERT INTO klant_statistieken (Aantal_volwassenen) VALUES (@aantalVolwassenen);
+ ELSEIF @aantalRijen = 1 THEN
+ UPDATE klant_statistieken
+SET Aantal_volwassenen = @aantalVolwassenen, Laatste_update = @datum WHERE 1;
+ END IF;
+END$$
+DELIMITER ;
+
+
+DELIMITER $$
+CREATE TRIGGER `telBetaaldUpdate`
+AFTER UPDATE ON `boeking`
+FOR EACH ROW
+BEGIN
+   SET @aantalBetaald = (SELECT SUM(status) FROM boeking WHERE status = "Betaald");
+   SET @aantalRijen = (SELECT COUNT(IFNULL(Aantal_volwassenen, 1)) FROM klant_statistieken);
+   SET @datum = (SELECT CURDATE());
+   IF @aantalRijen = 0 THEN
+      INSERT INTO klant_statistieken (Aantal_klanten_betaald) VALUES (@aantalBetaald);
+   ELSEIF @aantalRijen = 1 THEN
+      UPDATE klant_statistieken
+      SET Aantal_klanten_betaald = @aantalBetaald, Laatste_update = @datum WHERE 1;
+   END IF;
+END$$
+DELIMITER;
+
+
+SELECT COUNT(status)
+FROM boeking;
+SELECT SUM(status) FROM boeking WHERE status = "Betaald"
+SELECT COUNT(status)
+FROM boeking
+WHERE status = "Betaald"
