@@ -124,7 +124,7 @@ IF @aantalRijen = 0 THEN
  INSERT INTO klant_statistieken (Aantal_klanten_betaald) VALUES (@aantalBetaald);
  ELSEIF @aantalRijen = 1 THEN
  UPDATE klant_statistieken
-SET Aantal_kinderen = @aantalKinderen, Laatste_update = @datum WHERE 1;
+SET Aantal_klanten_betaald = @aantalBetaald, Laatste_update = @datum WHERE 1;
  END IF;
 END$$
 DELIMITER ;
@@ -135,14 +135,50 @@ CREATE TRIGGER ` telNietBetaaldUpdate`
 AFTER DELETE ON `boeking`
 FOR EACH ROW
 BEGIN
- SET @aantalBetaald = (SELECT SUM(status) where FROM boeking WHERE status = 'Niet betaald!');
+ SET @aantalNietBetaald = (SELECT SUM(status) where FROM boeking WHERE status = 'Niet betaald!');
  SET @aantalRijen = (SELECT COUNT(IFNULL(Aantal_volwassenen, 1)) FROM klant_statistieken);
  SET @datum = (SELECT CURDATE());
 IF @aantalRijen = 0 THEN
- INSERT INTO klant_statistieken (Aantal_klanten_betaald) VALUES (@aantalBetaald);
+ INSERT INTO klant_statistieken (Aantal_klanten_niet_betaald) VALUES (@aantalNietBetaald);
  ELSEIF @aantalRijen = 1 THEN
  UPDATE klant_statistieken
-SET Aantal_kinderen = @aantalKinderen, Laatste_update = @datum WHERE 1;
+SET Aantal_klanten_niet_betaald = @aantalNietBetaald, Laatste_update = @datum WHERE 1;
  END IF;
 END$$
 DELIMITER ;
+
+
+
+DELIMITER $$
+CREATE FUNCTION berekenBelasting(bedrag int(7), belasting int(7))
+RETURNS int(7) DETERMINISTIC
+BEGIN
+SET @nieuwBedrag = bedrag * (1 - belasting / 100);
+RETURN @nieuwBedrag;
+END $$
+DELIMITER ;
+
+
+DELIMITER $$
+CREATE FUNCTION newPrice(bedrag int(7), belasting int(7))
+RETURNS int(7) DETERMINISTIC
+BEGIN
+SET @nieuwBedrag = bedrag * (1 + belasting / 100);
+RETURN @nieuwBedrag;
+END $$
+DELIMITER ;
+
+
+CREATE VIEW testFunctionView AS
+SELECT newPrice(500,21)
+
+CREATE VIEW landReizen AS
+SELECT  bestemming.Plaats,  bestemming.Land,Aantal_volwassenen,Aantal_kids,Betaald_bedrag FROM boeking
+INNER JOIN reis ON boeking.Reisnr = reis.Reisnr
+INNER JOIN bestemming ON reis.Bestemmingcode = bestemming.Bestemmingcode
+
+
+CREATE PROCEDURE betaalde()
+SELECT bestemming.Plaats, bestemming.Land, status FROM boeking
+INNER JOIN reis ON boeking.Reisnr = reis.Reisnr
+INNER JOIN bestemming ON reis.Bestemmingcode = bestemming.Bestemmingcode
