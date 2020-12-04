@@ -4,6 +4,11 @@ SELECT bestemming.Plaats, bestemming.Land, bestemming.Werelddeel FROM klant
 INNER JOIN bestemming ON reis.Bestemmingcode = bestemming.Bestemmingcode
 
 
+CREATE PROCEDURE newSelect()
+SELECT bestemming.Plaats, bestemming.Land, bestemming.Werelddeel FROM reis
+INNER JOIN bestemming ON reis.Bestemmingcode = bestemming.Bestemmingcode
+
+
 CREATE PROCEDURE Land()
 SELECT bestemming.Land, bestemming.Werelddeel FROM bestemming  ORDER BY `Land` DESC
 LIMIT    N;
@@ -147,8 +152,6 @@ SET Aantal_klanten_niet_betaald = @aantalNietBetaald, Laatste_update = @datum WH
 END$$
 DELIMITER ;
 
-
-
 DELIMITER $$
 CREATE FUNCTION berekenBelasting(bedrag int(7), belasting int(7))
 RETURNS int(7) DETERMINISTIC
@@ -182,3 +185,186 @@ CREATE PROCEDURE betaalde()
 SELECT bestemming.Plaats, bestemming.Land, status FROM boeking
 INNER JOIN reis ON boeking.Reisnr = reis.Reisnr
 INNER JOIN bestemming ON reis.Bestemmingcode = bestemming.Bestemmingcode
+WHERE status = 'Betaald'
+
+CREATE PROCEDURE heeftKinderen()
+  SELECT  bestemming.Plaats,  bestemming.Land,Aantal_volwassenen,Aantal_kids,Betaald_bedrag FROM boeking WHERE Aantal_kids > 0
+  INNER JOIN reis ON boeking.Reisnr = reis.Reisnr
+  INNER JOIN bestemming ON reis.Bestemmingcode = bestemming.Bestemmingcode
+
+START TRANSACTION;
+SELECT * FROM boeking;
+CALL heeftKinderen()
+ROLLBACK;
+
+START TRANSACTION;
+
+CREATE PROCEDURE newSelect()
+SELECT bestemming.Plaats, bestemming.Land, bestemming.Werelddeel FROM reis
+INNER JOIN bestemming ON reis.Bestemmingcode = bestemming.Bestemmingcode
+
+
+
+START TRANSACTION;
+UPDATE `boeking` SET `Bedrag` =  Betaald_bedrag WHERE
+`Betaald_bedrag` > 0;
+SELECT * FROM boeking;
+ROLLBACK;
+
+DELIMITER $$
+CREATE FUNCTION setBedrag()
+RETURNS decimal(7,2) DETERMINISTIC
+BEGIN
+SET @Betaald  SELECT Betaald_bedrag FROM boeking;
+IF @Betaald > 0 THEN
+  SET @newValue = @Betaald;
+ELSE
+  SET @newValue = 0;
+END IF;
+RETURN @newValue;
+END $$
+DELIMITER ;
+
+
+
+///function die checkt als er betaald is voor opdracht B
+DELIMITER $$
+CREATE FUNCTION isBetaald(bedrag int(7))
+RETURNS varchar(50) DETERMINISTIC
+BEGIN
+IF bedrag > 0 THEN
+  SET @Betaald = "Betaald";
+ELSE
+  SET @Betaald = "Niet betaald!";
+END IF;
+RETURN @Betaald;
+END $$
+DELIMITER ;
+
+/////belasting functie die de nieuwe prijs weergeeft als die in is gevult voor de boeking table
+DELIMITER $$
+CREATE FUNCTION newPrice(bedrag int(7), belasting int(7))
+RETURNS int(7) DETERMINISTIC
+BEGIN
+SET @nieuwBedrag = bedrag * (1 + belasting / 100);
+RETURN @nieuwBedrag;
+END $$
+DELIMITER ;
+
+CREATE PROCEDURE setBooking()
+  SELECT  bestemming.Plaats, bestemming.Land,Aantal_volwassenen,Aantal_kids,Betaald_bedrag FROM boeking
+  SET @Betaald = SELECT isBetaald(200) FROM boeking
+  SET status = @Betaald WHERE 1;
+  INNER JOIN reis ON boeking.Reisnr = reis.Reisnr
+  INNER JOIN bestemming ON reis.Bestemmingcode = bestemming.Bestemmingcode
+
+
+CREATE PROCEDURE setBooking()
+  SELECT  bestemming.Plaats, bestemming.Land,Aantal_volwassenen,Aantal_kids,Betaald_bedrag,Belasting FROM boeking
+  IF(!Belasting)
+  BEGIN
+    UPDATE boeking
+    SET Belasting = true,  WHERE 1;
+  END
+  ELSE
+  BEGIN
+
+  END
+  UPDATE boeking
+  SET status = @Betaald WHERE 1;
+  INNER JOIN reis ON boeking.Reisnr = reis.Reisnr
+  INNER JOIN bestemming ON reis.Bestemmingcode = bestemming.Bestemmingcode
+
+
+
+Create Proc SP1
+(
+   @ID int,
+   @value int(7)
+ )
+
+  AS
+  BEGIN
+
+  Exec berekenBelasting @value,21 OUTPUT
+
+END
+
+
+CREATE PROCEDURE testOpdracht()
+
+
+START TRANSACTION
+
+   INSERT INTO boeking(Klantnr,Reisnr,Boekdatum,Aantal_volwassenen,Aantal_kids,Betaald_bedrag,status)
+   VALUES  (15,7,CURDATE(),1,2,500,'Niet betaald!')
+   SAVE TRANSACTION FirstInsert
+
+   UPDATE `boeking` SET `status`="Betaald" WHERE
+   `Betaald_bedrag` > 0;
+   SELECT * FROM boeking;
+   SAVE TRANSACTION SecondInsert
+
+   INSERT INTO boeking(Klantnr,Reisnr,Boekdatum,Aantal_volwassenen,Aantal_kids,Betaald_bedrag,status)
+   VALUES  (15,10,CURDATE(),10,2,5000,'Niet betaald!')
+
+   ROLLBACK TRANSACTION SecondInsert
+
+COMMIT
+
+//////////////opdracht A
+START TRANSACTION;
+INSERT INTO `boeking`(`Klantnr`, `Reisnr`, `Boekdatum`,
+`Aantal_volwassenen`, `Aantal_kids`, `Betaald_bedrag`, `status`) VALUES (7,15,CURDATE(),2,2,500.00, "");
+
+SAVE TRANSACTION FirstInsert
+
+UPDATE boeking SET
+status = CASE
+ WHEN Betaald_bedrag > 0 THEN "Betaald"
+ WHEN Betaald_bedrag <= 0 THEN "Niet betaald!"
+ ELSE "NIET BETAALD!"
+END
+WHERE 1;
+
+SAVE TRANSACTION SecondInsert
+
+CALL boekingen();
+
+
+
+
+START TRANSACTION;
+UPDATE `boeking` SET `status`=”Betaald” WHERE
+`Betaald_bedrag` > 0;
+SELECT * FROM boeking;
+ROLLBACK;
+
+CREATE PROCEDURE boekingen()
+SELECT bestemming.Plaats, bestemming.Land,klant.Naam,Aantal_volwassenen,Aantal_kids,Betaald_bedrag,status FROM boeking
+INNER JOIN klant ON boeking.Klantnr = klant.Klantnr
+INNER JOIN reis ON boeking.Reisnr = reis.Reisnr
+INNER JOIN bestemming ON reis.Bestemmingcode = bestemming.Bestemmingcode
+
+
+
+
+START TRANSACTION;
+
+  INSERT INTO `boeking`(`Klantnr`, `Reisnr`, `Boekdatum`,
+  `Aantal_volwassenen`, `Aantal_kids`, `Betaald_bedrag`, `status`) VALUES (7,15,CURDATE(),2,2,500.00, "");
+
+
+  SAVE TRANSACTION FirstInsert;
+
+  CALL boekingen();
+
+  INSERT INTO `boeking`(`Klantnr`, `Reisnr`, `Boekdatum`,
+  `Aantal_volwassenen`, `Aantal_kids`, `Betaald_bedrag`, `status`) VALUES (7,20,CURDATE(),2,5,800.00, "");
+
+  SAVE TRANSACTION SecondInsert;
+
+  ROLLBACK TRANSACTION @FirstInsert
+
+  COMMIT
+  CALL boekingen();
