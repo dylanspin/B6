@@ -331,6 +331,7 @@ SAVE TRANSACTION SecondInsert
 
 CALL boekingen();
 
+COMMIT
 
 
 
@@ -351,16 +352,16 @@ INNER JOIN bestemming ON reis.Bestemmingcode = bestemming.Bestemmingcode
 
 START TRANSACTION;
 
-  INSERT INTO `boeking`(`Klantnr`, `Reisnr`, `Boekdatum`,
-  `Aantal_volwassenen`, `Aantal_kids`, `Betaald_bedrag`, `status`) VALUES (7,15,CURDATE(),2,2,500.00, "");
+  INSERT INTO `boeking`(`Klantnr`, `Reisnr`, `Boekdatum`,`Aantal_volwassenen`, `Aantal_kids`, `Betaald_bedrag`, `status`)
+  VALUES (7,15,CURDATE(),2,2,500.00, "");
 
 
   SAVE TRANSACTION FirstInsert;
 
   CALL boekingen();
 
-  INSERT INTO `boeking`(`Klantnr`, `Reisnr`, `Boekdatum`,
-  `Aantal_volwassenen`, `Aantal_kids`, `Betaald_bedrag`, `status`) VALUES (7,20,CURDATE(),2,5,800.00, "");
+  INSERT INTO `boeking`(`Klantnr`, `Reisnr`, `Boekdatum`,`Aantal_volwassenen`, `Aantal_kids`, `Betaald_bedrag`, `status`)
+   VALUES (7,20,CURDATE(),2,5,800.00, "");
 
   SAVE TRANSACTION SecondInsert;
 
@@ -368,3 +369,89 @@ START TRANSACTION;
 
   COMMIT
   CALL boekingen();
+
+
+
+  UPDATE `boeking` SET `status`= "Betaald" WHERE
+  `Betaald_bedrag` > 0;
+  SELECT * FROM boeking;
+
+
+  START TRANSACTION;
+
+    INSERT INTO `boeking`(`Klantnr`, `Reisnr`, `Boekdatum`,`Aantal_volwassenen`, `Aantal_kids`, `Betaald_bedrag`, `status`)
+    VALUES (7,15,CURDATE(),2,2,500.00, "");
+
+
+    SAVE TRANSACTION FirstInsert;
+
+    CALL boekingen();
+
+    UPDATE `boeking` SET `status`= "Betaald" WHERE `Betaald_bedrag` > 0;
+
+    SAVE TRANSACTION SecondInsert;
+
+    ROLLBACK TRANSACTION @FirstInsert
+
+    COMMIT
+    CALL boekingen();
+
+
+
+
+
+    Opdracht A
+
+USE reis
+GO
+
+TRUNCATE TABLE boeking
+
+BEGIN TRANSACTION
+
+   INSERT INTO `boeking`(`Klantnr`, `Reisnr`, `Boekdatum`,`Aantal_volwassenen`, `Aantal_kids`, `Betaald_bedrag`, `status`)
+   VALUES (7,15,CURDATE(),2,2,500.00, "")
+
+   SAVE TRANSACTION @FirstInsert
+
+  	UPDATE boeking SET status = CASE
+     WHEN Betaald_bedrag > 0 THEN "Betaald"
+     WHEN Betaald_bedrag <= 0 THEN "Niet betaald!"
+     ELSE "NIET BETAALD!"
+    END
+    WHERE 1
+
+   SAVE TRANSACTION @SecondInsert
+
+  	CALL boekingen()
+
+    INSERT INTO `boeking`(`Klantnr`, `Reisnr`, `Boekdatum`,`Aantal_volwassenen`, `Aantal_kids`, `Betaald_bedrag`, `status`)
+    VALUES (7,15,CURDATE(),2,2,500.00, "")
+
+    SAVE TRANSACTION @ThirdInsert
+
+   ROLLBACK TRANSACTION @vSecondInsert
+
+COMMIT
+
+CALL boekingen()
+
+
+DELIMITER $$
+CREATE FUNCTION amountPlaces()
+RETURNS int(7) DETERMINISTIC
+BEGIN
+SET @nieuwBedrag = bedrag * (1 + belasting / 100);
+RETURN @nieuwBedrag;
+END $$
+DELIMITER ;
+
+
+DELIMITER $$
+CREATE FUNCTION amountPlaces()
+RETURNS int(7) DETERMINISTIC
+BEGIN
+SET @amount = SELECT Count(*) FROM `reis` WHERE 1
+RETURN @amount;
+END $$
+DELIMITER ;
