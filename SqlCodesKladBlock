@@ -455,3 +455,63 @@ SET @amount = SELECT Count(*) FROM `reis` WHERE 1
 RETURN @amount;
 END $$
 DELIMITER ;
+
+
+
+//////create function total people
+
+DELIMITER $$
+CREATE FUNCTION amountPeople( Number1 int(7),Number2 int(7))
+RETURNS int(7) DETERMINISTIC
+BEGIN
+SET @amount = Number1 + Number2;
+RETURN @amount;
+END $$
+DELIMITER ;
+
+
+//////opdracht B test
+create procedure getAmount()
+@adults int(7)
+@kids int(7)
+begin
+declare @amount int(7)
+@adults = SELECT Aantal_volwassenen FROM `boeking` WHERE 1
+@kids = SELECT Aantal_kids FROM `boeking` WHERE 1
+set @amount=dbo.amountPeople(@adults,@kids)
+select @amount
+end
+
+
+
+/////Opdracht A krijg de savepoints maar niet tewerken
+
+
+START TRANSACTION;
+
+   SAVEPOINT beginInsert
+
+   INSERT INTO `boeking`(`Klantnr`, `Reisnr`, `Boekdatum`,`Aantal_volwassenen`, `Aantal_kids`, `Betaald_bedrag`, `status`)
+   VALUES (7,15,CURDATE(),2,2,500.00, "");
+
+   SAVEPOINT FirstInsert;
+
+  	UPDATE boeking SET status = CASE
+    WHEN Betaald_bedrag > 0 THEN "Betaald"
+    WHEN Betaald_bedrag <= 0 THEN "Niet betaald!"
+    ELSE "NIET BETAALD!"
+    END
+    WHERE 1;
+
+   SAVEPOINT SecondInsert;
+
+  	CALL boekingen();
+
+   INSERT INTO `boeking`(`Klantnr`, `Reisnr`, `Boekdatum`,`Aantal_volwassenen`, `Aantal_kids`, `Betaald_bedrag`, `status`)
+    VALUES (7,15,CURDATE(),2,2,500.00, "");
+
+    SAVEPOINT ThirdInsert
+
+   ROLLBACK TRANSACTION SecondInsert
+
+CALL boekingen();
