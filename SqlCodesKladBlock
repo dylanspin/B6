@@ -203,8 +203,6 @@ CREATE PROCEDURE newSelect()
 SELECT bestemming.Plaats, bestemming.Land, bestemming.Werelddeel FROM reis
 INNER JOIN bestemming ON reis.Bestemmingcode = bestemming.Bestemmingcode
 
-
-
 START TRANSACTION;
 UPDATE `boeking` SET `Bedrag` =  Betaald_bedrag WHERE
 `Betaald_bedrag` > 0;
@@ -482,7 +480,14 @@ set @amount=dbo.amountPeople(@adults,@kids)
 select @amount
 end
 
-
+create procedure getAmount()
+begin
+declare @amount int(7)
+@adults = SELECT Aantal_volwassenen FROM `boeking` WHERE 1
+@kids = SELECT Aantal_kids FROM `boeking` WHERE 1
+set @amount=amountPeople(@adults,@kids)
+select @amount
+end
 
 /////Opdracht A krijg de savepoints maar niet tewerken
 
@@ -515,3 +520,57 @@ START TRANSACTION;
    ROLLBACK TRANSACTION SecondInsert
 
 CALL boekingen();
+
+
+
+////OPDRACHT B
+
+DELIMITER $$
+CREATE procedure getPeople()
+BEGIN
+
+select @adults = Aantal_volwassenen, @kids = Aantal_kids
+    from `boeking`
+    where Boekingnr = 1;
+
+select amountPeople(@adults,@kids);
+END$$
+DELIMITER ;
+
+
+
+DELIMITER $$
+CREATE procedure getPeople()
+BEGIN
+DECLARE @adults int(50)
+SET @adults = (SELECT Aantal_volwassenen FROM boeking WHERE Boekingnr = 3)
+PRINT @adults
+END$$
+DELIMITER ;
+
+
+DECLARE @EmpName NVARCHAR(50)
+SET @EmpName = (SELECT [Name] FROM SetVsSelectDemo WHERE GroupNumber = 3)
+PRINT @EmpName
+GO
+
+
+select @adults = Aantal_volwassenen, @kids = Aantal_kids
+    from `boeking`
+    where Boekingnr = 1;
+
+
+
+BEGIN
+
+SET @adults =
+(
+    Select Aantal_volwassenen from boeking where Boekingnr = 1
+)
+SET @kids =
+(
+    Select Aantal_kids from boeking where Boekingnr = 1
+)
+select amountPeople(@adults,@kids);
+
+END
